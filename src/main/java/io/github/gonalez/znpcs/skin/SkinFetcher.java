@@ -1,5 +1,6 @@
 package io.github.gonalez.znpcs.skin;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.DataOutputStream;
@@ -34,7 +35,7 @@ public class SkinFetcher {
               connection.setDoOutput(true);
               DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
               try {
-                outputStream.writeBytes("url=" + URLEncoder.encode(this.builder.getData(), "UTF-8"));
+                outputStream.writeBytes("url=" + URLEncoder.encode(this.builder.getData(), StandardCharsets.UTF_8));
                 outputStream.close();
               } catch (Throwable throwable) {
                 try {
@@ -69,15 +70,17 @@ public class SkinFetcher {
           if (completableFuture.isCompletedExceptionally()) {
             skinFetcherResult.onDone(null, throwable);
           } else {
-            JsonObject jsonObject = response.getAsJsonObject(this.builder.getAPIServer().getValueKey());
-            JsonObject properties = jsonObject.getAsJsonObject(this.builder.getAPIServer().getSignatureKey());
-            skinFetcherResult.onDone(new String[] { properties.get("value").getAsString(), properties.get("signature").getAsString() }, null);
+            JsonArray properties = response.getAsJsonArray("properties");
+            JsonObject textures = properties.get(0).getAsJsonObject();
+            String value = textures.get("value").getAsString();
+            String signature = textures.get("signature").getAsString();
+            skinFetcherResult.onDone(new String[] { value, signature }, null);
           } 
         });
     return completableFuture;
   }
   
   private String getData() {
-    return this.builder.isProfileType() ? ("/" + this.builder.getData()) : "";
+    return this.builder.isProfileType() ? ("/" + this.builder.getData() + "?unsigned=false") : "";
   }
 }

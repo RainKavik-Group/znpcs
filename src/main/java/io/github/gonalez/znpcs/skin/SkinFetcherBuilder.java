@@ -1,6 +1,17 @@
 package io.github.gonalez.znpcs.skin;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 public class SkinFetcherBuilder {
+  private static final Gson gson = new Gson();
+
   private final SkinServer apiServer;
   
   private final String name;
@@ -15,7 +26,31 @@ public class SkinFetcherBuilder {
   }
   
   public String getData() {
-    return this.name;
+    if (isProfileType()) {
+      try {
+        HttpURLConnection connection = (HttpURLConnection)(new URL(SkinServer.UUID_API.getURL())).openConnection();
+        connection.setRequestMethod(SkinServer.UUID_API.getMethod());
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json;charset=utf-8");
+        connection.connect();
+
+        String body = "[\"%s\"]".formatted(this.name);
+        DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
+        outputStream.writeBytes(body);  // FUCK YOU URLEncoder.encode()
+        outputStream.close();
+
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_OK){
+          Reader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8);
+          List<ProfileJson> profileJsonList = gson.fromJson(reader, new TypeToken<List<ProfileJson>>(){}.getType());
+          ProfileJson profileJson = profileJsonList.get(0);
+          assert profileJson.name.equals(this.name);
+          return profileJson.id;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
   }
   
   public boolean isUrlType() {
@@ -24,6 +59,10 @@ public class SkinFetcherBuilder {
   
   public boolean isProfileType() {
     return (this.apiServer == SkinServer.PROFILE_API);
+  }
+
+  public boolean isUuidType() {
+    return (this.apiServer == SkinServer.UUID_API);
   }
   
   public static SkinFetcherBuilder create(SkinServer skinAPIURL, String name) {
@@ -39,22 +78,17 @@ public class SkinFetcherBuilder {
   }
   
   public enum SkinServer {
-    PROFILE_API("GET", "https://api.ashcon.app/mojang/v2/user", "textures", "raw"),
-    GENERATE_API("POST", "https://api.mineskin.org/generate/url", "data", "texture");
+    UUID_API("POST", "https://mcskin.kazuhahub.com/api/yggdrasil/api/profiles/minecraft"),
+    PROFILE_API("GET", "https://mcskin.kazuhahub.com/api/yggdrasil/sessionserver/session/minecraft/profile"),  // ?unsigned=false
+    GENERATE_API("POST", "https://api.mineskin.org/generate/url");
     
     private final String method;
     
     private final String url;
     
-    private final String valueKey;
-    
-    private final String signatureKey;
-    
-    SkinServer(String method, String url, String valueKey, String signatureKey) {
+    SkinServer(String method, String url) {
       this.method = method;
       this.url = url;
-      this.valueKey = valueKey;
-      this.signatureKey = signatureKey;
     }
     
     public String getMethod() {
@@ -64,13 +98,10 @@ public class SkinFetcherBuilder {
     public String getURL() {
       return this.url;
     }
-    
-    public String getValueKey() {
-      return this.valueKey;
-    }
-    
-    public String getSignatureKey() {
-      return this.signatureKey;
-    }
+  }
+
+  private static class ProfileJson {
+    public String id;
+    public String name;
   }
 }
