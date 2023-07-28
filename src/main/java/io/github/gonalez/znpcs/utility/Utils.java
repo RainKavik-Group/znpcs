@@ -7,7 +7,7 @@ import io.github.gonalez.znpcs.configuration.ConfigurationConstants;
 import java.lang.reflect.Field;
 import java.util.concurrent.ThreadLocalRandom;
 import me.clip.placeholderapi.PlaceholderAPI;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
