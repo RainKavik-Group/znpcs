@@ -50,7 +50,7 @@ public class SkinFetcherBuilder {
         e.printStackTrace();
       }
     }
-    return null;
+    return this.name;
   }
   
   public boolean isUrlType() {
